@@ -9,7 +9,7 @@ type token =
     | OpToken of string
     | RefToken of int * int
     | StrToken of string
-    | NumToken of decimal 
+    | NumToken of float 
 
 let (|Match|_|) pattern input =
     let m = System.Text.RegularExpressions.Regex.Match(input, pattern)
@@ -27,7 +27,7 @@ let toToken = function
     | Match @"^\(|^\)|^\,|^\:|^%" s -> s, Symbol s.[0]   
     | Match @"^[A-Z]\d+" s -> s, s |> toRef |> RefToken
     | Match @"^[A-Za-z]+" s -> s, StrToken s
-    | Match @"^\d+(\.\d+)?|\.\d+" s -> s, s |> decimal |> NumToken
+    | Match @"^\d+(\.\d+)?|\.\d+" s -> s, s |> float |> NumToken
     | _ -> invalidOp ""
 
 let tokenize s =
@@ -46,7 +46,7 @@ type formula =
     | Neg of formula
     | ArithmeticOp of formula * arithmeticOp * formula
     | LogicalOp of formula * logicalOp * formula
-    | Num of decimal
+    | Num of float
     | Ref of int * int
     | Range of int * int * int * int
     | Fun of string * formula list
@@ -109,14 +109,14 @@ let parse (s:string) =
         LiteralString s
 *)
 let GetCellValue (x:int) (y:int) =
-    0m
+    0.0
 let rec (|FullExpression|_|) = function
     | OpToken "="::Expression(e,[]) -> Some e
 //    | OpToken "+"::Expression(e,[]) -> Some e //looks like it's not needed on modern excel
     | NumToken d::[] -> Some (<@ d @>)
     | OpToken "-"::NumToken d::[] -> Some (let d = -d in <@ d @>)
-    | NumToken d::Symbol '%'::[] -> Some (let d = d/100m in <@ d @>)
-    | OpToken "-"::NumToken d::Symbol '%'::[] -> Some (let d = -d/100m in <@ d @>)
+    | NumToken d::Symbol '%'::[] -> Some (let d = d/100.0 in <@ d @>)
+    | OpToken "-"::NumToken d::Symbol '%'::[] -> Some (let d = -d/100.0 in <@ d @>)
     | _ -> None
 and (|NoNegation|_|) = function
     | NumToken d::t -> Some(<@ d @>,t)
@@ -134,7 +134,7 @@ and (|NoPercent|_|) = function
 and (|NoExponentiation|_|) = function
     | NoPercent(e, t) -> 
         let rec aux e = function
-            | Symbol '%'::t -> let e,t = aux e t in  <@(%e/100m)@>,t
+            | Symbol '%'::t -> let e,t = aux e t in  <@(%e/100.0)@>,t
             | t -> e,t
         Some (aux e t)
 //    | NoPercent(e,Symbol '%':: t) -> Some (<@@(%%e/100)@@>,t)
@@ -169,12 +169,12 @@ and (|NoLogic|_|) = function
 and (|Expression|_|) = function
     | NoLogic(e,t) ->
         let rec aux left = function
-            | OpToken "="::NoLogic(right,t) -> let newLeft = <@(if %left = %right then 1m else 0m)@> in aux newLeft t
-            | OpToken "<"::NoLogic(right,t) -> let newLeft = <@(if %left < %right then 1m else 0m)@> in aux newLeft t
-            | OpToken ">"::NoLogic(right,t) -> let newLeft = <@(if %left > %right then 1m else 0m)@> in aux newLeft t
-            | OpToken "<="::NoLogic(right,t) -> let newLeft = <@(if %left <= %right then 1m else 0m)@> in aux newLeft t
-            | OpToken ">="::NoLogic(right,t) -> let newLeft = <@(if %left >= %right then 1m else 0m)@> in aux newLeft t
-            | OpToken "<>"::NoLogic(right,t) -> let newLeft = <@(if %left <> %right then 1m else 0m)@> in aux newLeft t
+            | OpToken "="::NoLogic(right,t) -> let newLeft = <@(if %left = %right then 1.0 else 0.0)@> in aux newLeft t
+            | OpToken "<"::NoLogic(right,t) -> let newLeft = <@(if %left < %right then 1.0 else 0.0)@> in aux newLeft t
+            | OpToken ">"::NoLogic(right,t) -> let newLeft = <@(if %left > %right then 1.0 else 0.0)@> in aux newLeft t
+            | OpToken "<="::NoLogic(right,t) -> let newLeft = <@(if %left <= %right then 1.0 else 0.0)@> in aux newLeft t
+            | OpToken ">="::NoLogic(right,t) -> let newLeft = <@(if %left >= %right then 1.0 else 0.0)@> in aux newLeft t
+            | OpToken "<>"::NoLogic(right,t) -> let newLeft = <@(if %left <> %right then 1.0 else 0.0)@> in aux newLeft t
             | t -> left,t
         Some (aux e t)
     | _ -> None
@@ -182,15 +182,15 @@ let evaluate (valueAt:int * int -> string) formula =
     let rec eval = function
         | Neg f -> - (eval f) 
         | ArithmeticOp(f1,op,f2) -> arithmetic op (eval f1) (eval f2)
-        | LogicalOp(f1,op,f2) -> if logic op (eval f1) (eval f2) then 0.0M else -1.0M
+        | LogicalOp(f1,op,f2) -> if logic op (eval f1) (eval f2) then 0.0 else -1.0
         | Num d -> d
-        | Ref(x,y) -> valueAt(x,y) |> decimal
+        | Ref(x,y) -> valueAt(x,y) |> float
         | Range _ -> invalidOp "Expected in function"
         | Fun("SUM",ps) -> ps |> evalAll |> List.sum
         | Fun("IF",[condition;f1;f2]) -> 
-            if (eval condition)=0.0M then eval f1 else eval f2 
+            if (eval condition)=0.0 then eval f1 else eval f2 
         | Fun(_,_) -> failwith "Unknown function"
-        | LiteralString s -> 0M
+        | LiteralString s -> 0.0
     and arithmetic = function
         | Add -> (+) | Sub -> (-) | Mul -> (*) | Div -> (/)
     and logic = function         
@@ -200,7 +200,7 @@ let evaluate (valueAt:int * int -> string) formula =
     and evalAll ps =
         ps |> List.collect (function            
             | Range(x1,y1,x2,y2) ->
-                [for x=x1 to x2 do for y=y1 to y2 do yield valueAt(x,y) |> decimal]
+                [for x=x1 to x2 do for y=y1 to y2 do yield valueAt(x,y) |> float]
             | x -> [eval x]            
         )
     eval formula
@@ -208,7 +208,7 @@ let evaluate (valueAt:int * int -> string) formula =
 let parseExpr s =
     match tokenize s with
     | FullExpression e -> e
-    | _ -> <@@ "EH?" @@>
+    | _ -> let n = nan in <@ n @>
 let references formula =
     let rec traverse = function
         | Ref(x,y) -> [x,y]
