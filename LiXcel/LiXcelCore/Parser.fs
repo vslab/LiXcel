@@ -1,5 +1,6 @@
 ﻿module LiXcelCore.Parser
-
+open Microsoft.FSharp.Quotations
+open Microsoft.FSharp.Quotations.Patterns
 //this code from http://www.developerfusion.com/article/123830/functional-cells-a-spreadsheet-in-f/
 
 type token =
@@ -23,7 +24,7 @@ let toToken = function
     | Match @"^\s+" s -> s, WhiteSpace
     | Match @"^\+|^\-|^\*|^\/"  s -> s, OpToken s
     | Match @"^=|^<>|^<=|^>=|^>|^<"  s -> s, OpToken s   
-    | Match @"^\(|^\)|^\,|^\:" s -> s, Symbol s.[0]   
+    | Match @"^\(|^\)|^\,|^\:|^%" s -> s, Symbol s.[0]   
     | Match @"^[A-Z]\d+" s -> s, s |> toRef |> RefToken
     | Match @"^[A-Za-z]+" s -> s, StrToken s
     | Match @"^\d+(\.\d+)?|\.\d+" s -> s, s |> decimal |> NumToken
@@ -51,6 +52,7 @@ type formula =
     | Fun of string * formula list
     | LiteralString of string
 
+(*
 let rec (|Term|_|) = function
     | Sum(f1, (OpToken(LogicOp op))::Sum(f2,t)) -> Some(LogicalOp(f1,op,f2),t)
     | Sum(f1,t) -> Some (f1,t)
@@ -61,25 +63,25 @@ and (|LogicOp|_|) = function
     | "<=" -> Some Le | ">=" -> Some Ge
     | _ -> None
 and (|Sum|_|) = function
-    | Factor(f1, t) ->      
+    | RenameTerm(f1, t) ->      
         let rec aux f1 = function        
-            | SumOp op::Factor(f2, t) -> aux (ArithmeticOp(f1,op,f2)) t               
+            | SumOp op::RenameTerm(f2, t) -> aux (ArithmeticOp(f1,op,f2)) t               
             | t -> Some(f1, t)      
         aux f1 t  
     | _ -> None
 and (|SumOp|_|) = function 
     | OpToken "+" -> Some Add | OpToken "-" -> Some Sub 
     | _ -> None
-and (|Factor|_|) = function  
-    | OpToken "-"::Factor(f, t) -> Some(Neg f, t)
-    | Atom(f1, ProductOp op::Factor(f2, t)) ->
+and (|RenameTerm|_|) = function  
+    | OpToken "-"::RenameTerm(f, t) -> Some(Neg f, t)
+    | RenameFactor(f1, ProductOp op::RenameTerm(f2, t)) ->
         Some(ArithmeticOp(f1,op,f2), t)       
-    | Atom(f, t) -> Some(f, t)  
+    | RenameFactor(f, t) -> Some(f, t)  
     | _ -> None    
 and (|ProductOp|_|) = function
     | OpToken "*" -> Some Mul | OpToken "/" -> Some Div
     | _ -> None
-and (|Atom|_|) = function      
+and (|RenameFactor|_|) = function      
     | NumToken n::t -> Some(Num n, t)
     | RefToken(x1,y1)::(Symbol ':'::RefToken(x2,y2)::t) -> 
         Some(Range(min x1 x2,min y1 y2,max x1 x2,max y1 y2),t)  
@@ -105,7 +107,77 @@ let parse (s:string) =
         | _ -> failwith "Failed to parse formula"
     else
         LiteralString s
-
+*)
+let GetCellValue (x:int) (y:int) =
+    0m
+let rec (|FullExpression|_|) = function
+    | OpToken "="::Expression(e,[]) -> Some e
+//    | OpToken "+"::Expression(e,[]) -> Some e //looks like it's not needed on modern excel
+    | NumToken d::[] -> Some (<@ d @>)
+    | OpToken "-"::NumToken d::[] -> Some (let d = -d in <@ d @>)
+    | NumToken d::Symbol '%'::[] -> Some (let d = d/100m in <@ d @>)
+    | OpToken "-"::NumToken d::Symbol '%'::[] -> Some (let d = -d/100m in <@ d @>)
+    | _ -> None
+and (|NoNegation|_|) = function
+    | NumToken d::t -> Some(<@ d @>,t)
+//    | RefToken (x1,y1)::Symbol ':'::RefToken (x2,y2)::t -> Some (<@@ GetRange(@@>,t)
+    | RefToken (x1,y1)::t -> 
+        let literalx = <@ x1@>
+        let literaly = <@ y1@>
+        Some (<@GetCellValue %literalx %literaly@>,t)
+    | Symbol '(' :: Expression(e,Symbol ')'::t) -> Some (<@ ( %e )@>,t)
+    | _ -> None
+and (|NoPercent|_|) = function
+    | OpToken "-"::NoPercent(e,t) -> Some (<@ (- %e) @>,t)
+    | NoNegation(e,t) -> Some (e,t)
+    | _ -> None
+and (|NoExponentiation|_|) = function
+    | NoPercent(e, t) -> 
+        let rec aux e = function
+            | Symbol '%'::t -> let e,t = aux e t in  <@(%e/100m)@>,t
+            | t -> e,t
+        Some (aux e t)
+//    | NoPercent(e,Symbol '%':: t) -> Some (<@@(%%e/100)@@>,t)
+//    | NoPercent(e,t) -> Some (e,t)
+    | _ -> None
+and (|NoMulDiv|_|) = function
+    | NoExponentiation(e,t) ->
+        let rec aux left = function
+            | OpToken "^"::NoExponentiation(right,t) -> let newLeft = <@(%left ** %right)@> in aux newLeft t
+            | t -> left,t
+        Some (aux e t)
+    | _ -> None
+and (|NoAddSub|_|) = function
+    | NoMulDiv(e,t) ->
+        let rec aux left = function
+            | OpToken "*"::NoMulDiv(right,t) -> let newLeft = <@(%left * %right)@> in aux newLeft t
+            | OpToken "/"::NoMulDiv(right,t) -> let newLeft = <@(%left / %right)@> in aux newLeft t
+            | t -> left,t
+        Some (aux e t)
+    | _ -> None
+and (|NoConcat|_|) = function
+    | NoAddSub(e,t) ->
+        let rec aux left = function
+            | OpToken "+"::NoAddSub(right,t) -> let newLeft = <@(%left + %right)@> in aux newLeft t
+            | OpToken "-"::NoAddSub(right,t) -> let newLeft = <@(%left - %right)@> in aux newLeft t
+            | t -> left,t
+        Some (aux e t)
+    | _ -> None
+and (|NoLogic|_|) = function
+    | NoConcat(e,t) -> Some(e,t) //concat not implemented yet
+    | _ -> None
+and (|Expression|_|) = function
+    | NoLogic(e,t) ->
+        let rec aux left = function
+            | OpToken "="::NoLogic(right,t) -> let newLeft = <@(if %left = %right then 1m else 0m)@> in aux newLeft t
+            | OpToken "<"::NoLogic(right,t) -> let newLeft = <@(if %left < %right then 1m else 0m)@> in aux newLeft t
+            | OpToken ">"::NoLogic(right,t) -> let newLeft = <@(if %left > %right then 1m else 0m)@> in aux newLeft t
+            | OpToken "<="::NoLogic(right,t) -> let newLeft = <@(if %left <= %right then 1m else 0m)@> in aux newLeft t
+            | OpToken ">="::NoLogic(right,t) -> let newLeft = <@(if %left >= %right then 1m else 0m)@> in aux newLeft t
+            | OpToken "<>"::NoLogic(right,t) -> let newLeft = <@(if %left <> %right then 1m else 0m)@> in aux newLeft t
+            | t -> left,t
+        Some (aux e t)
+    | _ -> None
 let evaluate (valueAt:int * int -> string) formula =
     let rec eval = function
         | Neg f -> - (eval f) 
@@ -133,6 +205,10 @@ let evaluate (valueAt:int * int -> string) formula =
         )
     eval formula
 
+let parseExpr s =
+    match tokenize s with
+    | FullExpression e -> e
+    | _ -> <@@ "EH?" @@>
 let references formula =
     let rec traverse = function
         | Ref(x,y) -> [x,y]
