@@ -11,9 +11,19 @@ namespace LiXcel
 {
     public partial class ThisAddIn
     {
+        private LiXcelCore.Api api;
+        protected override object RequestComAddInAutomationService()
+        {
+            lock (this)
+            {
+                if (api == null)
+                    api = new LiXcelCore.Api();
+            }
+
+            return api;
+        }
         private void ThisAddIn_Startup(object sender, System.EventArgs e)
         {
-
         }
 
         private void ThisAddIn_Shutdown(object sender, System.EventArgs e)

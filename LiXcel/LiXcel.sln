@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LiXcel", "LiXcel\LiXcel.csproj", "{EEB6397A-D39C-438A-A172-BA6820CFEBEB}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "LiXcelCore", "LiXcelCore\LiXcelCore.fsproj", "{F8B04051-F494-4CC3-BD98-180AD47F66DD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -13,6 +15,10 @@ Global
 		{EEB6397A-D39C-438A-A172-BA6820CFEBEB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EEB6397A-D39C-438A-A172-BA6820CFEBEB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EEB6397A-D39C-438A-A172-BA6820CFEBEB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F8B04051-F494-4CC3-BD98-180AD47F66DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F8B04051-F494-4CC3-BD98-180AD47F66DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F8B04051-F494-4CC3-BD98-180AD47F66DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F8B04051-F494-4CC3-BD98-180AD47F66DD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
