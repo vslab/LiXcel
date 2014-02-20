@@ -46,7 +46,27 @@ module priv =
         //| FieldGet(Some(Value(v,_)),fi) -> fi.GetValue(v)
         //| PropertyGet(None, pi, args) -> pi.GetValue(null, evalAll ctx args)
         //| PropertyGet(Some(x),pi,args) -> pi.GetValue(eval ctx x, evalAll ctx args)
-        | Call(None,mi,args) -> mi.Invoke(null, evalAll env args),mi.ReturnType
+        | DerivedPatterns.SpecificCall <@ (~-) @> (a,b,c)->
+            let a,_ = eval env c.Head
+            (-(a |>unbox<float>))|>box,typeof<float>
+        | DerivedPatterns.SpecificCall <@ (-) @> (a,b,c)->
+            let a,_ = eval env c.Head
+            let b,_ = eval env c.Tail.Head
+            ((a |>unbox<float>)-(b |>unbox<float>))|>box,typeof<float>
+        | DerivedPatterns.SpecificCall <@ (~+) @> (a,b,c)->
+            eval env c.Head
+        | DerivedPatterns.SpecificCall <@ (/) @> (a,b,c)->
+            let a,_ = eval env c.Head
+            let b,_ = eval env c.Tail.Head
+            ((a |>unbox<float>)/(b |>unbox<float>))|>box,typeof<float>
+        | Call(None,mi,args) ->
+            let args = evalAll env args
+            try 
+                let rval = mi.Invoke(null,args )
+                let rtype = mi.ReturnType
+                rval,rtype
+            with
+                | :? System.Reflection.TargetInvocationException as ex -> raise ex.InnerException
         //| Call(Some(x),mi,args) -> mi.Invoke(eval ctx x, evalAll ctx args)
         | Var(v) -> env.Item(v)|>box,typeof<float>
         | arg -> raise <| System.NotSupportedException(arg.ToString())
@@ -78,3 +98,7 @@ type Api ()=
         let sb = new System.Text.StringBuilder()
         List.iter (fun t -> sb.AppendLine (t.ToString()) |> ignore) tokens
         sb.ToString() |> box
+    member this.Eval (cell:Excel.Range) =
+        let expr = Parser.parseExpr (cell.Formula.ToString())
+        let evaluation = priv.Eval cell expr
+        evaluation().ToString() |>box
