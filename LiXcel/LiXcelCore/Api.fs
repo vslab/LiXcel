@@ -8,7 +8,7 @@ module priv =
     let resolveContext (ctx:Excel.Range) (addr:string) =
         ctx.Worksheet.Range(addr|>box)
 
-    let rec listDependencies (name:Var) (ctx:Excel.Range) (expr:Expr) =
+    let rec listDependencies (ctx:Excel.Range) (expr:Expr) =
         let lista = ref []
         let rec addrec name (ctx:Excel.Range) (expr:Expr) =
             if not (List.exists (fun (n,_,_) -> name =n) !lista) then
@@ -22,22 +22,23 @@ module priv =
                     failwith "circular reference"
                 else
                     lista := (name,ctx,expr)::!lista
-        addrec name ctx expr
+        let deps = expr.GetFreeVars()
+        deps |> Seq.iter (fun v ->
+            let cell = resolveContext ctx (v.Name)
+            let formula = cell.Formula |> unbox
+            let exp = Parser.parseExpr formula
+            addrec v cell exp )
         !lista
-    let rec getDep (ctx:Excel.Range) (expr:Expr) =
-        expr.GetFreeVars () |> Seq.map (fun x ->
-            let nextctx = resolveContext ctx x.Name
-            
-            )
-    let rec eval (ctx:Excel.Range) (env:Map<Var,float>) = function
-        | Value(v,t) -> v
+    let rec eval (env:Map<Var,float>) (expr:Expr) =
+        match expr with
+        | Value(v,t) -> v,t
         //| Coerce(e,t) -> eval ctx e
         //| NewObject(ci,args) -> ci.Invoke(evalAll ctx args)
         //| NewArray(t,args) -> 
         //    let array = Array.CreateInstance(t, args.Length) 
         //    args |> List.iteri (fun i arg -> array.SetValue(eval ctx arg, i))
         //    box array
-        | NewUnionCase(case,args) -> FSharpValue.MakeUnion(case, evalAll ctx args)
+        | NewUnionCase(case,args) -> FSharpValue.MakeUnion(case, evalAll env args),typeof<float list>
         //| NewRecord(t,args) -> FSharpValue.MakeRecord(t, evalAll ctx args)
         //| NewTuple(args) ->
         //    let t = FSharpType.MakeTupleType [|for arg in args -> arg.Type|]
@@ -45,24 +46,22 @@ module priv =
         //| FieldGet(Some(Value(v,_)),fi) -> fi.GetValue(v)
         //| PropertyGet(None, pi, args) -> pi.GetValue(null, evalAll ctx args)
         //| PropertyGet(Some(x),pi,args) -> pi.GetValue(eval ctx x, evalAll ctx args)
-        | Call(None,mi,args) -> mi.Invoke(null, evalAll ctx args)
+        | Call(None,mi,args) -> mi.Invoke(null, evalAll env args),mi.ReturnType
         //| Call(Some(x),mi,args) -> mi.Invoke(eval ctx x, evalAll ctx args)
-        | Var(v) -> getVar
+        | Var(v) -> env.Item(v)|>box,typeof<float>
         | arg -> raise <| System.NotSupportedException(arg.ToString())
-    and evalAll ctx args = [|for arg in args -> eval ctx var arg|]
+    and evalAll env args = [|for arg in args -> eval env arg |> fst|]
     //and getVar ->
       
-
-        //nodes. name,ctx,expr,expr.GetFreeVars
-    let testina (radice:Excel.Range, =
-    let mutable l = []
-    let mutable s = [radice]
-    while s <> [] do
-        let n = s.Head
-        s <- s.Tail
-        l <- n :: l
-        n
-
+    let Eval (ctx:Excel.Range) (e:Expr) :unit->float =
+        let cellList = listDependencies ctx e |> List.rev
+        let rec evald (ctx:Map<Var,float>) = function
+            | [] -> ctx
+            | (var,ct,expr)::t ->
+                evald (ctx.Add(var,eval ctx expr|> fst|> unbox)) t
+        fun () ->
+            let ctx = evald Map.empty cellList
+            eval ctx e |> fst |> unbox
 type Api ()=
 
     member this.Hello (formula:Excel.Range) = formula.Formula
