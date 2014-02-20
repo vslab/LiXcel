@@ -108,8 +108,13 @@ let parse (s:string) =
     else
         LiteralString s
 *)
-let GetCellValue (x:int) (y:int) =
-    0.0
+//[<ReflectedDefinition>]
+type FunctionLibrary =
+    static member GetCellValue (x:int) (y:int) =
+        0.0
+    static member SUM values =
+        List.sum<float> values
+
 let rec (|FullExpression|_|) = function
     | OpToken "="::Expression(e,[]) -> Some e
 //    | OpToken "+"::Expression(e,[]) -> Some e //looks like it's not needed on modern excel
@@ -124,8 +129,9 @@ and (|NoNegation|_|) = function
     | RefToken (x1,y1)::t -> 
         let literalx = <@ x1@>
         let literaly = <@ y1@>
-        Some (<@GetCellValue %literalx %literaly@>,t)
+        Some (<@FunctionLibrary.GetCellValue %literalx %literaly@>,t)
     | Symbol '(' :: Expression(e,Symbol ')'::t) -> Some (<@ ( %e )@>,t)
+    | FunCall(e,t) -> Some(e,t)
     | _ -> None
 and (|NoPercent|_|) = function
     | OpToken "-"::NoPercent(e,t) -> Some (<@ (- %e) @>,t)
@@ -177,6 +183,29 @@ and (|Expression|_|) = function
             | OpToken "<>"::NoLogic(right,t) -> let newLeft = <@(if %left <> %right then 1.0 else 0.0)@> in aux newLeft t
             | t -> left,t
         Some (aux e t)
+    | _ -> None
+and (|ArgList|_|) = function
+    | Expression(e,Symbol ',':: ArgList(a,t)) -> Some (e.Raw::a,t)//Some (<@ %e::%a @>,t)
+    | Expression(e,t) -> Some (e.Raw::[],t) //Some (<@ %e::[] @>,t)
+    | _ -> None
+and (|FunCall|_|) = function
+    | StrToken(name) :: Symbol '(' :: ArgList(a,Symbol ')' :: t) ->
+        let methodInfo = typeof<FunctionLibrary>.GetMethod(name,List.map (fun (x:Expr) -> x.Type) a|> List.toArray) 
+        let e =
+            if methodInfo <> null then
+                Expr.Call(methodInfo, a)
+            else
+                let methodInfo = typeof<FunctionLibrary>.GetMethod(name,[|typeof<float list>|]) 
+                if methodInfo <> null then
+                    let rec aux = function
+                        | [] -> <@@ []:float list @@>
+                        | h::t -> let r = aux t in <@@ %%h::%%r : float list@@>
+                    Expr.Call(methodInfo,[aux a])
+                else
+                    failwithf "Method Unknown: %s" name
+            |> Expr.Cast
+        Some(e,t)
+        //Some(<@ ( FunctionLibrary.Invoke name %a) @>,t)
     | _ -> None
 let evaluate (valueAt:int * int -> string) formula =
     let rec eval = function
