@@ -19,11 +19,25 @@ namespace LiXcel
         {
             Excel.Range selection =
                 Application.Selection != null &&
-                Application.Selection is Excel.Range ?
+                Application.Selection is Excel.Range &&
+                ((Excel.Range) Application.Selection).Columns.Count > 1?
                 Application.Selection : null;
+            var inputBox = Application.InputBox("seleziona casella input",Type.Missing,Type.Missing,Type.Missing,Type.Missing,Type.Missing,Type.Missing,8);
             
-            Excel.Range input = Application.InputBox("seleziona casella input",Type.Missing,Type.Missing,Type.Missing,Type.Missing,Type.Missing,Type.Missing,8);
-            Excel.Range output = selection;// Application.InputBox("seleziona casella output",Type.Missing,Type.Missing,Type.Missing,Type.Missing,Type.Missing,Type.Missing,8);
+            if (!(inputBox is Excel.Range))
+                return;
+
+            Excel.Range input = inputBox;
+            Excel.Range output = selection;
+            if (selection == null)
+            {
+                inputBox = Application.InputBox("seleziona range output (almeno 2 colonne)", Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, 8);
+                if (!(
+                    inputBox is Excel.Range
+                    && ((inputBox as Excel.Range).Columns.Count > 1)
+                    ))
+                    return;
+            }
             int iterazioni = 50000;// Application.InputBox("Numero di iterazioni", Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, 8);
             Globals.api.Simulate(input, output, iterazioni);
         }
