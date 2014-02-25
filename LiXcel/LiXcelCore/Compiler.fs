@@ -6,17 +6,22 @@ module priv =
     open Microsoft.FSharp.Reflection
     open Microsoft.FSharp.Quotations.Patterns
     let resolveContext (ctx:Excel.Range) (addr:string) =
-        ctx.Worksheet.Range(addr|>box)
-
+        let s = addr.Split('/')
+        if s.Length = 1 then
+            ctx.Worksheet.Range(addr|>box)
+        else
+            let wb = ctx.Worksheet.Parent |>unbox<Excel.Workbook> 
+            let sheet = wb.Worksheets.Item(s.[1] |> box) |> unbox<Excel.Worksheet>
+            sheet.Range(s.[0])
     let rec listDependencies (ctx:Excel.Range) (expr:Expr) =
         let lista = ref []
-        let rec addrec name (ctx:Excel.Range) (expr:Expr) =
+        let rec addrec (name:Var) (ctx:Excel.Range) (expr:Expr) =
             if not (List.exists (fun (n,_,_) -> name =n) !lista) then
                 let deps = expr.GetFreeVars()
                 deps |> Seq.iter (fun v ->
                     let cell = resolveContext ctx (v.Name)
                     let formula = cell.Formula |> unbox
-                    let exp = Parser.parseExpr formula
+                    let exp = Parser.parseExpr  (cell.Worksheet.Name) formula
                     addrec v cell exp )
                 if (List.exists (fun (n,_,_) -> name =n) !lista) then
                     failwith "circular reference"
@@ -26,8 +31,8 @@ module priv =
         deps |> Seq.iter (fun v ->
             let cell = resolveContext ctx (v.Name)
             let formula = cell.Formula |> unbox
-            let exp = Parser.parseExpr formula
-            addrec v cell exp )
+            let exp = Parser.parseExpr  (cell.Worksheet.Name) formula
+            addrec v cell exp)
         !lista
     let rec eval (env:Map<Var,float>) (expr:Expr) =
         match expr with
@@ -84,5 +89,5 @@ let Compile (ctx:Excel.Range) (e:Expr) :unit->float =
         priv.eval ctx e |> fst |> unbox
 
 let CompileCell (cell:Excel.Range) =
-    let expr = cell.Formula |> unbox |> Parser.parseExpr
+    let expr = cell.Formula |> unbox |> Parser.parseExpr  cell.Worksheet.Name
     Compile cell expr

@@ -19,7 +19,7 @@ type Api ()=
         List.iter (fun t -> sb.AppendLine (t.ToString()) |> ignore) tokens
         sb.ToString() |> box
     member this.Eval (cell:Excel.Range) =
-        let expr = Parser.parseExpr (cell.Formula.ToString())
+        let expr = Parser.parseExpr (cell.Formula.ToString()) (cell.Worksheet.Name)
         let evaluation = Compiler.Compile cell expr
         evaluation().ToString() |>box
 
