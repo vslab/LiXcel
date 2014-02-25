@@ -19,11 +19,14 @@ let toToken = function
     | Match @"^\s+" s -> s, WhiteSpace
     | Match @"^\+|^\-|^\*|^\/"  s -> s, OpToken s
     | Match @"^=|^<>|^<=|^>=|^>|^<"  s -> s, OpToken s   
-    | Match @"^\(|^\)|^\,|^\:|^%" s -> s, Symbol s.[0]   
-    | Match @"^[A-Z]\d+" s -> s, s |> RefToken
-    | Match @"^[A-Za-z]+" s -> s, StrToken s
-    | Match @"^\d+(\.\d+)?|\.\d+" s -> s, s |> float |> NumToken
+    | Match @"^\(|^\)|^\,|^\:|^%|^\!" s -> s, Symbol s.[0]   
+    //| Match @"^[A-Z]\d+" s -> s, s |> RefToken
+    | Match @"^(([A-Za-z_][A-Za-z0-9_\.]*|\'([^\']|\'\')*\')\!)?[A-Z]\d+" s -> s, s |> RefToken
+    | Match @"^[A-Za-z_][_\.A-Za-z0-9]*" s -> s, StrToken s
+    | Match @"^\d+(\.\d+)?|^\.\d+" s -> s, s |> float |> NumToken
+    | Match @"^\'[^\']*\'" s -> s,StrToken s
     | _ -> invalidOp ""
+
 
 let tokenize s =
     let rec tokenize' index (s:string) =
