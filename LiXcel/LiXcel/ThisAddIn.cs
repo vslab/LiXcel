@@ -9,15 +9,21 @@ using Microsoft.Office.Tools.Excel;
 
 namespace LiXcel
 {
+    internal sealed partial class Globals {
+        static public LiXcelCore.Api api { get { return Globals.ThisAddIn.api; }  }
+    }
     public partial class ThisAddIn
     {
-        private LiXcelCore.Api api;
+        private LiXcelCore.Api _api;
+        public LiXcelCore.Api api { get {
+            return _api;
+        } }
         protected override object RequestComAddInAutomationService()
         {
             lock (this)
             {
                 if (api == null)
-                    api = new LiXcelCore.Api();
+                    _api = new LiXcelCore.Api();
             }
 
             return api;

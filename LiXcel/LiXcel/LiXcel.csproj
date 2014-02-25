@@ -149,9 +149,18 @@
     can be found.
   -->
   <ItemGroup>
+    <Compile Include="LxlRibbon.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="LxlRibbon.Designer.cs">
+      <DependentUpon>LxlRibbon.cs</DependentUpon>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
+    <EmbeddedResource Include="LxlRibbon.resx">
+      <DependentUpon>LxlRibbon.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
