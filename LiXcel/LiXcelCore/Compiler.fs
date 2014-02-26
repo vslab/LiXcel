@@ -6,7 +6,7 @@ module priv =
     open Microsoft.FSharp.Reflection
     open Microsoft.FSharp.Quotations.Patterns
     let resolveContext (ctx:Excel.Range) (addr:string) =
-        let s = addr.Split('/')
+        let s = addr.Split([|'/'|],2)
         if s.Length = 1 then
             ctx.Worksheet.Range(addr|>box)
         else
@@ -37,6 +37,7 @@ module priv =
     let rec eval (env:Map<Var,float>) (expr:Expr) =
         match expr with
         | Value(v,t) -> v,t
+        | Var(v) -> env.Item(v)|>box,typeof<float>
         //| Coerce(e,t) -> eval ctx e
         //| NewObject(ci,args) -> ci.Invoke(evalAll ctx args)
         //| NewArray(t,args) -> 
@@ -73,7 +74,6 @@ module priv =
             with
                 | :? System.Reflection.TargetInvocationException as ex -> raise ex.InnerException
         //| Call(Some(x),mi,args) -> mi.Invoke(eval ctx x, evalAll ctx args)
-        | Var(v) -> env.Item(v)|>box,typeof<float>
         | arg -> raise <| System.NotSupportedException(arg.ToString())
     and evalAll env args = [|for arg in args -> eval env arg |> fst|]
     //and getVar ->

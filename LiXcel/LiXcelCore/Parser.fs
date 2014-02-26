@@ -18,7 +18,9 @@ let (|Match|_|) pattern input =
 let (|RefFull|_|) input =
     let m = System.Text.RegularExpressions.Regex.Match(input, @"^(?:(?:([A-Za-z_][A-Za-z0-9_\.]*)|\'((?:[^\']|\'\')*)\')\!)([A-Z][A-Z]?\d+)" )
     if m.Success then
-        Some (m.Value,(m.Groups.[1].Value+ m.Groups.[2].Value),m.Groups.[3].Value)
+        //todo: dequote sheet string
+        let s = m.Groups.[2].Value.Replace("''","'")
+        Some (m.Value,(m.Groups.[1].Value+ s),m.Groups.[3].Value)
     else
         None
 
