@@ -148,6 +148,9 @@ let parseExpr sheetName s =
                 |> Expr.Cast
             Some(e,t)
             //Some(<@ ( FunctionLibrary.Invoke name %a) @>,t)
+        | StrToken(name) ::  Symbol '(' :: Symbol ')' ::t ->
+            let methodInfo = typeof<FunctionLibrary>.GetProperty(name).GetGetMethod(false)
+            Some(Expr.Call(methodInfo,[])|>Expr.Cast,t)
         | _ -> None
     let tokens = tokenize s
     match tokens with

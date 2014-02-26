@@ -37,7 +37,7 @@ namespace LiXcel
                     return;
                 output = inputBox;
             }
-            int iterazioni = 50000;// Application.InputBox("Numero di iterazioni", Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, 8);
+            int iterazioni = 1000000;// Application.InputBox("Numero di iterazioni", Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, 8);
             Globals.api.Simulate(input, output, iterazioni);
         }
     }
