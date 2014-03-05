@@ -37,8 +37,14 @@ namespace LiXcel
                     return;
                 output = inputBox;
             }
+            double min = double.NaN;
+            var minstr = Application.InputBox("Minimum value");
+            if (minstr is bool  || minstr == ""|| ! double.TryParse(minstr, out min)) min = double.NaN;
+            double max = double.NaN;
+            var maxstr = Application.InputBox("Maxumum value");
+            if (maxstr is bool  || maxstr == ""|| ! double.TryParse(maxstr, out max)) max = double.NaN;
             int iterazioni = 1000000;// Application.InputBox("Numero di iterazioni", Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, 8);
-            Globals.api.Simulate(input, output, iterazioni);
+            Globals.api.Simulate(input, output, iterazioni,min,max);
         }
     }
 }

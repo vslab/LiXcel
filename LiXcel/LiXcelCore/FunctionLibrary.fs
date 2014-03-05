@@ -20,3 +20,4 @@ type FunctionLibrary =
     static member PI = System.Math.PI
     static member COS x = cos x
     static member SQRT x = sqrt x
+    static member ROUND number digits = let mul = (10.0**truncate(digits)) in (truncate (number * mul + 0.5)) / mul

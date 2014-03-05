@@ -16,7 +16,7 @@ let (|Match|_|) pattern input =
     let m = System.Text.RegularExpressions.Regex.Match(input, pattern)
     if m.Success then Some m.Value else None
 let (|RefFull|_|) input =
-    let m = System.Text.RegularExpressions.Regex.Match(input, @"^(?:(?:([A-Za-z_][A-Za-z0-9_\.]*)|\'((?:[^\']|\'\')*)\')\!)([A-Z][A-Z]?\d+)" )
+    let m = System.Text.RegularExpressions.Regex.Match(input, @"^(?:(?:\$?([A-Za-z_][A-Za-z0-9_\.]*)|\'((?:[^\']|\'\')*)\')\!)\$?([A-Z][A-Z]?\$?\d+)" )
     if m.Success then
         //todo: dequote sheet string
         let s = m.Groups.[2].Value.Replace("''","'")
@@ -30,8 +30,8 @@ let toToken = function
     | Match @"^=|^<>|^<=|^>=|^>|^<"  s -> s, OpToken s   
     | Match @"^\(|^\)|^\,|^\:|^%|^\!" s -> s, Symbol s.[0]   
     //| Match @"^[A-Z]\d+" s -> s, s |> RefToken
-    | Match @"^[A-Z][A-Z]?\d+" s -> s, s |> RefToken
-    | RefFull (s,sheet,var) -> s, RefTokenFull (sheet,var)
+    | Match @"^\$?[A-Z][A-Z]?\$?\d+" s -> s, s.Replace("$","") |> RefToken
+    | RefFull (s,sheet,var) -> s, RefTokenFull (sheet,var.Replace("$",""))
     //| Match @"^(([A-Za-z_][A-Za-z0-9_\.]*|\'([^\']|\'\')*\')\!)[A-Z][A-Z]?\d+" s -> s, s |> RefTokenFull
     | Match @"^[A-Za-z_][_\.A-Za-z0-9]*" s -> s, StrToken s
     | Match @"^\d+(\.\d+)?|^\.\d+" s -> s, s |> float |> NumToken
@@ -67,6 +67,7 @@ let parseExpr sheetName s =
         | OpToken "-"::NumToken d::[] -> Some (let d = -d in <@ d @>)
         | NumToken d::Symbol '%'::[] -> Some (let d = d/100.0 in <@ d @>)
         | OpToken "-"::NumToken d::Symbol '%'::[] -> Some (let d = -d/100.0 in <@ d @>)
+        | [] -> Some <@ 0.0 @>
         | _ -> None
     and (|NoNegation|_|) = function
         | NumToken d::t -> Some(<@ d @>,t)

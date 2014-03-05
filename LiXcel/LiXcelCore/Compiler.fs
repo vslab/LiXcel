@@ -3,7 +3,7 @@ open Microsoft.Office.Interop
 open Microsoft.FSharp.Quotations
 
 type CompiledExpr =
-    | Variable of Var
+    | Variable of Var*float ref
     | Value of float
     | Addition of CompiledExpr*CompiledExpr
     | Subtraction of  CompiledExpr*CompiledExpr
@@ -14,46 +14,47 @@ type CompiledExpr =
     | BinaryFunction of (float->float->float)*CompiledExpr*CompiledExpr
     | GenericFun of System.Reflection.MethodInfo*(CompiledExpr list)
     | GenericInvoke of System.Reflection.MethodInfo*(CompiledExpr list)
-    | Bind of Var* CompiledExpr *CompiledExpr
+    | Bind of (Var*float ref)* CompiledExpr *CompiledExpr
 
 let FastEval (e:CompiledExpr):float =
-    let rec receval (env:Map<Var,float>) = function
-        | Variable var -> env.[var]
+    let rec receval = function
+        | Variable (var,addr) -> !addr
         | Value v -> v
         | Addition (a,b) ->
-            let a = receval env a
-            let b = receval env b
+            let a = receval  a
+            let b = receval  b
             (a + b)
         | Subtraction (a,b) ->
-            let a = receval env a
-            let b = receval env b
+            let a = receval a
+            let b = receval b
             (a - b)
         | Multiplication (a,b) ->
-            let a = receval env a
-            let b = receval env b
+            let a = receval a
+            let b = receval b
             (a * b)
         | Division (a,b) ->
-            let a = receval env a
-            let b = receval env b
+            let a = receval a
+            let b = receval b
             (a / b)
         | UnaryMinus a ->
-            let a = receval env a
+            let a = receval a
             -a
         | UnaryFunction (f,a) ->
-            let a = receval env a
+            let a = receval a
             f a
         | BinaryFunction (f,a,b) ->
-            let a = receval env a
-            let b = receval env b
+            let a = receval a
+            let b = receval b
             f a b
         | GenericFun (mi,args) ->
-            mi.Invoke(null,args|> Seq.map (box<<receval env) |> Seq.toArray)  |>unbox
+            mi.Invoke(null,args|> Seq.map (box<<receval) |> Seq.toArray)  |>unbox
         | GenericInvoke (mi,args) ->
-            mi.Invoke(null,[|args|> List.map (receval env) |])  |>unbox
-        | Bind (var,a,b) ->
-            let a = receval env a
-            receval (env.Add(var,a)) b
-    receval Map.empty e
+            mi.Invoke(null,[|args|> List.map (receval) |])  |>unbox
+        | Bind ((var,addr),a,b) ->
+            let a = receval a
+            addr := a
+            receval b
+    receval e
 
 //transforms a list expression in an expression list.
 //Undefined behavior if called with expressions which aren't lists
@@ -64,30 +65,34 @@ let rec listExprTransformer : Expr->Expr list = function
         | h::t::[] -> h :: listExprTransformer t
         | arg -> raise <| System.NotSupportedException(arg.ToString())
     | arg -> raise <| System.NotSupportedException(arg.ToString())
-let rec exprCompiler : Expr->CompiledExpr= function
+let rec exprCompiler (m:Map<Var,float ref>) : Expr->CompiledExpr= function
     | Patterns.Value(v,t) -> v|> unbox |> Value
-    | Patterns.Var(v) -> v |> Variable
+    | Patterns.Var(v) -> (v,m.[v]) |> Variable
     //| NewUnionCase(case,args) -> FSharpValue.MakeUnion(case, evalAll env args),typeof<float list>
     | DerivedPatterns.SpecificCall <@ (~+) @> (a,b,c)->
-        exprCompiler c.Head
+        exprCompiler m c.Head
     | DerivedPatterns.SpecificCall <@ (~-) @> (a,b,c)->
-        UnaryMinus (exprCompiler c.Head)
+        UnaryMinus (exprCompiler m c.Head)
     | DerivedPatterns.SpecificCall <@ (+) @> (a,b,c)->
-        Addition(exprCompiler c.Head,exprCompiler c.Tail.Head)
+        Addition(exprCompiler m c.Head,exprCompiler m c.Tail.Head)
     | DerivedPatterns.SpecificCall <@ (-) @> (a,b,c)->
-        Subtraction(exprCompiler c.Head,exprCompiler c.Tail.Head)
+        Subtraction(exprCompiler m c.Head,exprCompiler m c.Tail.Head)
     | DerivedPatterns.SpecificCall <@ (*) @> (a,b,c)->
-        Multiplication(exprCompiler c.Head,exprCompiler c.Tail.Head)
+        Multiplication(exprCompiler m c.Head,exprCompiler m c.Tail.Head)
     | DerivedPatterns.SpecificCall <@ (/) @> (a,b,c)->
-        Division(exprCompiler c.Head,exprCompiler c.Tail.Head)
+        Division(exprCompiler m c.Head,exprCompiler m c.Tail.Head)
     | Patterns.Call(None,mi,args) ->
         match args with
-        | [] -> GenericFun(mi,List.map exprCompiler args)
+        | [] -> GenericFun(mi,List.map (exprCompiler m) args)
         | h::[] when  h.Type = typeof<float list> ->
-            GenericInvoke(mi,List.map exprCompiler (listExprTransformer args.Head))
-        |_ -> GenericFun(mi,List.map exprCompiler args)
+            GenericInvoke(mi,List.map (exprCompiler m) (listExprTransformer args.Head))
+        |_ -> GenericFun(mi,List.map (exprCompiler m) args)
     | Patterns.Let (var,a,b) ->
-        Bind(var,exprCompiler a,exprCompiler b)
+        let oldv = m.TryFind(var)
+        let r = ref 0.0
+        let newm = m.Add(var,r)
+        let bexpr = exprCompiler m a
+        Bind((var,r),bexpr,exprCompiler newm b)
     | arg -> raise <| System.NotSupportedException(arg.ToString())
 
 module priv =
@@ -177,7 +182,7 @@ let Compile (ctx:Excel.Range) (e:Expr) :unit->float =
         | [] ->
             e
     let fold = evald e cellList
-    let cexpr = exprCompiler fold
+    let cexpr = exprCompiler Map.empty fold
     fun () -> FastEval cexpr
 
 let CompileCell (cell:Excel.Range) =

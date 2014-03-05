@@ -50,12 +50,11 @@
             // group1
             // 
             this.group1.Items.Add(this.button1);
-            this.group1.Label = "group1";
             this.group1.Name = "group1";
             // 
             // button1
             // 
-            this.button1.Label = "button1";
+            this.button1.Label = "Simula";
             this.button1.Name = "button1";
             this.button1.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.button1_Click);
             // 

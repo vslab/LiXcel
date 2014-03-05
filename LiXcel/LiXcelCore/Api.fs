@@ -23,12 +23,12 @@ type Api ()=
         let evaluation = Compiler.Compile cell expr
         evaluation().ToString() |>box
 
-    member this.Simulate (origin:Excel.Range) (destination:Excel.Range) (iterationCount:int) =
+    member this.Simulate (origin:Excel.Range) (destination:Excel.Range) (iterationCount:int) (minRange:float) (maxRange:float) =
         let bucketCount = destination.Rows.Count
         let simulator =  Compiler.CompileCell origin 
         let simulationResult = Array.init iterationCount (simulator<<ignore)
-        let rangeMin = Array.min simulationResult
-        let rangeMax = Array.max simulationResult
+        let rangeMin = if System.Double.IsNaN minRange then Array.min simulationResult else minRange
+        let rangeMax = if System.Double.IsNaN maxRange then Array.max simulationResult else maxRange
         let range = rangeMax-rangeMin
         let bucketWidth = if range = 0.0 then 1.0 else range/(float bucketCount)
         let buckets =
@@ -36,6 +36,8 @@ type Api ()=
             |> Seq.countBy (fun x ->
                 min ((x-rangeMin) / bucketWidth|>truncate |> int ) (bucketCount - 1) )|> Seq.sort |> Seq.toList
         let printer (bucketNumber,count) =
+                if bucketNumber < 0 then () else
+                if bucketNumber + 1 > bucketCount then () else
                 let imin = (float bucketNumber )*bucketWidth + rangeMin
                 let imax = imin + bucketWidth
                 let label = sprintf "%4f - %4f"  imin  imax
