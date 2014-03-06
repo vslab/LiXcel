@@ -3,12 +3,14 @@ open Microsoft.Office.Interop
 
 type FunctionLibrary =
     static member rng = new System.Security.Cryptography.RNGCryptoServiceProvider()//new System.Random()
-    static member randomNumber = Array.zeroCreate 8
     static member SUM values =
         List.sum<float> values
-    static member LXLUNIFORM left right =
-        let rn = FunctionLibrary.randomNumber
+    static member LXLBYTES count =
+        let rn = Array.zeroCreate count
         FunctionLibrary.rng.GetBytes(rn)
+        rn
+    static member LXLUNIFORM left right =
+        let rn = FunctionLibrary.LXLBYTES 8
         let a = uint64(System.BitConverter.ToInt64(rn,0))
         let a = a ||| 0x8000000000000000UL// 1<<63
         (((float a) / (float 0x8000000000000000UL))-1.0) * (right-left) + left;
