@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.Office.Tools.Ribbon;
 using Excel = Microsoft.Office.Interop.Excel;
-
+using Microsoft.Office.Interop.Excel;
 namespace LiXcel
 {
     public partial class LxlRibbon
@@ -23,7 +23,7 @@ namespace LiXcel
                 var inputBox = Application.InputBox("seleziona casella input", Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, 8);
                 if (!(inputBox is Excel.Range))
                     return;
-                input = inputBox;
+                input = (Excel.Range) inputBox;
             }
 
             Excel.Range output = null;
@@ -35,14 +35,14 @@ namespace LiXcel
                     && ((inputBox as Excel.Range).Columns.Count > 1)
                     ))
                     return;
-                output = inputBox;
+                output = (Excel.Range)inputBox;
             }
             double min = double.NaN;
             var minstr = Application.InputBox("Minimum value");
-            if (minstr is bool  || minstr == ""|| ! double.TryParse(minstr, out min)) min = double.NaN;
+            if (minstr is bool  || "".Equals(minstr.ToString())|| ! double.TryParse(minstr.ToString(), out min)) min = double.NaN;
             double max = double.NaN;
             var maxstr = Application.InputBox("Maxumum value");
-            if (maxstr is bool  || maxstr == ""|| ! double.TryParse(maxstr, out max)) max = double.NaN;
+            if (maxstr is bool  || "".Equals(maxstr.ToString())|| ! double.TryParse(maxstr.ToString(), out max)) max = double.NaN;
             int iterazioni = 1000000;// Application.InputBox("Numero di iterazioni", Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, 8);
             Globals.api.Simulate(input, output, iterazioni,min,max);
         }
