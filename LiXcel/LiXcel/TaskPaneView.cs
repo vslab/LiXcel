@@ -60,10 +60,10 @@ namespace LiXcel
                         output = (Excel.Range)inputBox;
                     }
                     double min = double.NaN;
-                    var minstr = Application.InputBox("Minimum value");
+                    var minstr = minTextBox.Text; //Application.InputBox("Minimum value");
                     if (minstr is bool || "".Equals(minstr.ToString()) || !double.TryParse(minstr.ToString(), out min)) min = double.NaN;
                     double max = double.NaN;
-                    var maxstr = Application.InputBox("Maxumum value");
+                    var maxstr = maxTextBox.Text; //Application.InputBox("Maxumum value");
                     if (maxstr is bool || "".Equals(maxstr.ToString()) || !double.TryParse(maxstr.ToString(), out max)) max = double.NaN;
                     //int iterazioni = 1000000;// Application.InputBox("Numero di iterazioni", Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, 8);
                     load = Globals.api.SimulateThreaded(input, output, iterations, min, max);
