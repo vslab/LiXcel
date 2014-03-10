@@ -30,6 +30,9 @@ namespace LiXcel
         }
         private void ThisAddIn_Startup(object sender, System.EventArgs e)
         {
+            var taskPaneView = new TaskPaneView();
+            var myTaskPane = this.CustomTaskPanes.Add(taskPaneView, "LiXcel");
+            myTaskPane.Visible = true;
         }
 
         private void ThisAddIn_Shutdown(object sender, System.EventArgs e)
