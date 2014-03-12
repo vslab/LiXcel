@@ -22,6 +22,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>bin\Debug\LiXcelCore.XML</DocumentationFile>
+    <OtherFlags>--keyfile:C:\Users\davidemorelli\Documents\GitHub\LiXcel\LiXcel\LiXcel\davide.snk</OtherFlags>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
