@@ -15,9 +15,30 @@ namespace LiXcel
     public partial class ThisAddIn
     {
         private LiXcelCore.Api _api;
-        public LiXcelCore.Api api { get {
-            return _api;
-        } }
+        private Microsoft.Office.Tools.CustomTaskPane _taskPane;
+
+        #region properties
+        public Microsoft.Office.Tools.CustomTaskPane taskPane
+        {
+            get
+            {
+                return _taskPane;
+            }
+        }
+        public LiXcelCore.Api api
+        {
+            get
+            {
+                return _api;
+            }
+        }
+        #endregion
+
+        public void ShowTaskPane()
+        {
+            _taskPane.Visible = true;
+        }
+
         protected override object RequestComAddInAutomationService()
         {
             lock (this)
@@ -31,8 +52,8 @@ namespace LiXcel
         private void ThisAddIn_Startup(object sender, System.EventArgs e)
         {
             var taskPaneView = new TaskPaneView();
-            var myTaskPane = this.CustomTaskPanes.Add(taskPaneView, "LiXcel");
-            myTaskPane.Visible = true;
+            _taskPane = this.CustomTaskPanes.Add(taskPaneView, "LiXcel");
+            _taskPane.Visible = true;
         }
 
         private void ThisAddIn_Shutdown(object sender, System.EventArgs e)
