@@ -61,10 +61,10 @@ namespace LiXcel
                     }
                     double min = double.NaN;
                     var minstr = minTextBox.Text; //Application.InputBox("Minimum value");
-                    if (minstr is bool || "".Equals(minstr.ToString()) || !double.TryParse(minstr.ToString(), out min)) min = double.NaN;
+                    if ( "".Equals(minstr.ToString()) || !double.TryParse(minstr.ToString(), out min)) min = double.NaN;
                     double max = double.NaN;
                     var maxstr = maxTextBox.Text; //Application.InputBox("Maxumum value");
-                    if (maxstr is bool || "".Equals(maxstr.ToString()) || !double.TryParse(maxstr.ToString(), out max)) max = double.NaN;
+                    if ( "".Equals(maxstr.ToString()) || !double.TryParse(maxstr.ToString(), out max)) max = double.NaN;
                     //int iterazioni = 1000000;// Application.InputBox("Numero di iterazioni", Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, 8);
                     load = Globals.api.SimulateThreaded(input, output, iterations, min, max);
                     System.Threading.Thread t = new System.Threading.Thread(RunSimulation);
@@ -73,7 +73,6 @@ namespace LiXcel
             }
         }
 
-        private System.Threading.Thread currentThread;
         private Microsoft.FSharp.Core.FSharpFunc<Microsoft.FSharp.Core.Unit, Microsoft.FSharp.Core.Unit> load;
         private bool keepOnSimulating;
         private bool stillSimulating;
