@@ -28,41 +28,60 @@ type Api ()=
     /// this member creates and returns a closure with the compilated excel expression that can be called many tiems 
     /// results will cumulate
     member this.SimulateThreaded (origin:Excel.Range) (destination:Excel.Range) (iterationCount:int) (minRange:float) (maxRange:float) =
+        let columnCount = destination.Columns.Count
         let bucketCount = destination.Rows.Count
         let simulator =  Compiler.CompileCell origin 
         let buckets = Array.init bucketCount (fun i -> i,0)
-        let rangeMin = ref nan
-        let rangeMax = ref nan
+        let rangeMin = ref minRange
+        let rangeMax = ref maxRange
         let range = ref nan
         let bucketWidth = ref nan
         let load () =
             let simulationResult = Array.init iterationCount (simulator<<ignore)
-            let printer (bucketNumber,count) =
-                    if bucketNumber < 0 then () else
-                    if bucketNumber + 1 > bucketCount then () else
-                    let imin = (float bucketNumber ) * !bucketWidth + !rangeMin
-                    let imax = imin + !bucketWidth
-                    let label = sprintf "%4f - %4f"  imin  imax
-                    let labelCell :Excel.Range = destination.Item(1 + bucketNumber|>box,1|>box)|>unbox
-                    let countCell :Excel.Range = destination.Item(1 + bucketNumber|>box,2|>box)|>unbox
-                    try
-                        labelCell.Formula <- label |> box
-                        countCell.Formula <- sprintf "%d" count |> box
-                    with
-                        | _ -> ()
             if (System.Double.IsNaN !range) then // do this only the first time
                 rangeMin := if System.Double.IsNaN minRange then Array.min simulationResult else minRange
                 rangeMax := if System.Double.IsNaN maxRange then Array.max simulationResult else maxRange
                 range := !rangeMax - !rangeMin
                 bucketWidth := if !range = 0.0 then 1.0 else !range/(float bucketCount)
-                for  x in 0..(bucketCount-1) do printer (x, 0)
+                let minmax =
+                    seq {
+                        let i = ref 0
+                        while true do
+                            let imin = (float (!i) ) * !bucketWidth + !rangeMin
+                            let imax = imin + !bucketWidth
+                            yield imin,imax
+                            i := !i+1
+                        }
+                    |> Seq.take bucketCount
+                    |> Seq.toList
+                if columnCount > 2 then
+                    let lmin,lmax = minmax |> List.unzip
+                    ((destination.Columns.Item(columnCount-1|>box)):?>Excel.Range).set_Value(System.Type.Missing,(lmax |> Seq.map (fun x -> [box x] )|> array2D))
+                    ((destination.Columns.Item(columnCount-2|>box)):?>Excel.Range).set_Value(System.Type.Missing,(lmin |> Seq.map (fun x -> [box x] )|> array2D))
+                else if columnCount  = 2 then
+                    let labels = minmax |> List.map (fun (imin,imax) -> [sprintf "%4f - %4f"  imin  imax|>box])
+                    ((destination.Columns.Item(1|>box)):?>Excel.Range).set_Value(System.Type.Missing,labels|>array2D)
+
             let bucketsSimulation =
                 simulationResult
                 |> Seq.countBy (fun x ->
                     min ((x - !rangeMin) / !bucketWidth|>truncate |> int ) (bucketCount - 1) )|> Seq.filter (fun (i,v) -> i>=0 && i<bucketCount) |> Seq.sort |> Seq.toList
             bucketsSimulation |> List.iter (fun (i,v) -> let _, old = buckets.[i] in buckets.[i] <- i, old + v)
             //destination.Application
-            buckets |> Seq.iter printer
+            try
+                (destination.Columns.Item(columnCount |>box):?>Excel.Range).set_Value (System.Type.Missing,
+                    let buckets = Array.sort buckets
+                    seq {
+                    let i = ref 0
+                    for j,count in buckets do
+                        while !i < j do
+                            yield [0|>box]
+                            i := !i + 1
+                        yield [count]
+                        i := !i + 1
+                    } |> Seq.toList |> array2D)
+            with
+            | _ -> ()
         load
 
     member this.Simulate (origin:Excel.Range) (destination:Excel.Range) (iterationCount:int) (minRange:float) (maxRange:float) =
