@@ -36,7 +36,12 @@ namespace LiXcel
 
         public void ShowTaskPane()
         {
-            _taskPane.Visible = true;
+            if (_taskPane != null && _taskPane.Control.ParentForm != null)
+                _taskPane.Visible = true;
+            else
+            {
+                CreatePanel();
+            }
         }
 
         protected override object RequestComAddInAutomationService()
@@ -49,16 +54,24 @@ namespace LiXcel
 
             return api;
         }
-        private void ThisAddIn_Startup(object sender, System.EventArgs e)
+
+        private void CreatePanel()
         {
             var taskPaneView = new TaskPaneView();
             _taskPane = this.CustomTaskPanes.Add(taskPaneView, "LiXcel");
             _taskPane.Visible = true;
         }
 
+        private void ThisAddIn_Startup(object sender, System.EventArgs e)
+        {
+            //CreatePanel();
+        }
+
         private void ThisAddIn_Shutdown(object sender, System.EventArgs e)
         {
         }
+
+        
 
         #region Codice generato da VSTO
 
