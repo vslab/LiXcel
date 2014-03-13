@@ -115,6 +115,14 @@ module priv =
                     let cell = resolveContext ctx (v.Name)
                     let formula = cell.Formula |> unbox
                     let exp = Parser.parseExpr  (cell.Worksheet.Name) formula
+                    let exp =
+                        match exp.Type with
+                        | a when a = typeof<Parser.Scalar> -> exp
+                        | a when a = typeof<Parser.Scalar [,]> -> <@@ (%%exp:Parser.Scalar[,]).[0,0] @@>
+                        | a when a = typeof<float> ->  <@@ Parser.Number (%%exp:float) @@>
+                        | a when a = typeof<bool> ->  <@@ Parser.Boolean (%%exp:bool) @@>
+                        | a when a = typeof<string> ->  <@@ Parser.Label (%%exp:string) @@>
+                        | _ -> exp
                     addrec v cell exp )
                 if (List.exists (fun (n,_,_) -> name =n) !lista) then
                     failwith "circular reference"
@@ -125,6 +133,14 @@ module priv =
             let cell = resolveContext ctx (v.Name)
             let formula = cell.Formula |> unbox
             let exp = Parser.parseExpr  (cell.Worksheet.Name) formula
+            let exp =
+                match exp.Type with
+                | a when a = typeof<Parser.Scalar> -> exp
+                | a when a = typeof<Parser.Scalar [,]> -> <@@ (%%exp:Parser.Scalar[,]).[0,0] @@>
+                | a when a = typeof<float> ->  <@@ Parser.Number (%%exp:float) @@>
+                | a when a = typeof<bool> ->  <@@ Parser.Boolean (%%exp:bool) @@>
+                | a when a = typeof<string> ->  <@@ Parser.Label (%%exp:string) @@>
+                | _ -> exp
             addrec v cell exp)
         !lista
     let rec eval (env:Map<Var,float>) (expr:Expr) =
