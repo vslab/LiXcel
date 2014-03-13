@@ -14,6 +14,7 @@ open Microsoft.FSharp.Quotations
         - array (bidimensionale di scalar)
 
 *)
+
 type Scalar =
     | Number of float
     | Label of string
@@ -83,6 +84,11 @@ let forceFloatExpr (e:Expr) =
         match e.Type with
         | t when t = typeof<float> -> Some e
         | t when t = typeof<bool> -> Some <@@ if (%%e:bool) then 1.0 else 0.0 @@>
+        | t when t = typeof<Scalar> ->
+            Some <@@ match (%%e:Scalar) with
+                        | Number n -> n
+                        | Boolean b -> if b then 1.0 else 0.0
+                        | _ -> 0.0 @@>
         | t when t = typeof<Scalar [,]> ->
             Some <@@ match (%%e:Scalar [,]).[0,0] with
                         | Number n -> n
@@ -136,7 +142,7 @@ let parseExpr sheetName s =
               Some (Expr.Var(getVar sheetName addr),t)
         | RefTokenFull (sheetName,addr)::t ->
               Some (Expr.Var(getVar sheetName addr),t)
-        | Symbol '(' :: Expression(e,Symbol ')'::t) -> Some (<@@ ( %%e )@@>,t)
+        | Symbol '(' :: Expression(e,Symbol ')'::t) -> Some (e,t)
         | FunCall(e,t) -> Some(e,t)
         | _ -> None
     and (|NoPercent|_|) = function
@@ -176,11 +182,11 @@ let parseExpr sheetName s =
             let rec aux left = function
                 | OpToken "*"::NoMulDiv(right,t) ->
                     match forceFloatExpr right with
-                    | Some right -> let newLeft = <@@(%%left * %%right)@@> in aux newLeft t
+                    | Some right -> let newLeft = <@@((%%left:float) + (%%right:float))@@> in aux newLeft t
                     | _ -> None
                 | OpToken "/"::NoMulDiv(right,t) ->
                     match forceFloatExpr right with
-                    | Some right -> let newLeft = <@@(%%left / %%right)@@> in aux newLeft t
+                    | Some right -> let newLeft = <@@((%%left:float) + (%%right:float))@@> in aux newLeft t
                     | _ -> None
                 | t -> Some(left,t)
             match forceFloatExpr e with
@@ -192,11 +198,11 @@ let parseExpr sheetName s =
             let rec aux left = function
                 | OpToken "+"::NoAddSub(right,t) ->
                     match forceFloatExpr right with
-                    | Some right -> let newLeft = <@@(%%left + %%right)@@> in aux newLeft t
+                    | Some right -> let newLeft = <@@((%%left:float) + (%%right:float))@@> in aux newLeft t
                     | _ -> None
                 | OpToken "-"::NoAddSub(right,t) ->
                     match forceFloatExpr right with
-                    | Some right -> let newLeft = <@@(%%left - %%right)@@> in aux newLeft t
+                    | Some right -> let newLeft = <@@((%%left:float) - (%%right:float))@@> in aux newLeft t
                     | _ -> None
                 | t -> Some(left,t)
             match forceFloatExpr e with
