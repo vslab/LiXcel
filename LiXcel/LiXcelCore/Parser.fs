@@ -136,19 +136,27 @@ let parseExpr sheetName s =
         | _ -> None
     and (|FunCall|_|) = function
         | StrToken(name) :: Symbol '(' :: ArgList(al,ae,Symbol ')' :: t) ->
-            let methodInfo = typeof<FunctionLibrary>.GetMethod(name,List.map (fun (x:Expr) -> x.Type) al|> List.toArray) 
-            let e =
-                if methodInfo <> null then
-                    Expr.Call(methodInfo, al)
-                else
-                    let methodInfo = typeof<FunctionLibrary>.GetMethod(name,[|typeof<float list>|])
-                    if methodInfo <> null then 
-                        Expr.Call(methodInfo,[ae])
+            //before that, check if it is an "if"
+            if name = "IF" then
+                try
+                    let g::tru::fal::_ = al
+                    Some(Expr.IfThenElse(Expr.Coerce(g,typeof<bool>),tru,fal)|>Expr.Cast,t)
+                with
+                | e -> None
+            else
+                let methodInfo = typeof<FunctionLibrary>.GetMethod(name,List.map (fun (x:Expr) -> x.Type) al|> List.toArray) 
+                let e =
+                    if methodInfo <> null then
+                        Expr.Call(methodInfo, al)
                     else
-                        failwithf "Method Unknown: %s" name
-                |> Expr.Cast
-            Some(e,t)
-            //Some(<@ ( FunctionLibrary.Invoke name %a) @>,t)
+                        let methodInfo = typeof<FunctionLibrary>.GetMethod(name,[|typeof<float list>|])
+                        if methodInfo <> null then 
+                            Expr.Call(methodInfo,[ae])
+                        else
+                            failwithf "Method Unknown: %s" name
+                    |> Expr.Cast
+                Some(e,t)
+                //Some(<@ ( FunctionLibrary.Invoke name %a) @>,t)
         | StrToken(name) ::  Symbol '(' :: Symbol ')' ::t ->
             let methodInfo = typeof<FunctionLibrary>.GetProperty(name).GetGetMethod(false)
             Some(Expr.Call(methodInfo,[])|>Expr.Cast,t)
