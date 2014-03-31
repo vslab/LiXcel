@@ -36,7 +36,7 @@ let toToken = function
     | Match @"^[A-Za-z_][_\.A-Za-z0-9]*" s -> s, StrToken s
     | Match @"^\d+(\.\d+)?|^\.\d+" s -> s, s |> float |> NumToken
     | Match @"^\'[^\']*\'" s -> s,StrToken s
-    | _ -> invalidOp ""
+    | t -> sprintf "Invalid token: %O" t |> invalidOp
 
 
 let tokenize s =
@@ -71,7 +71,7 @@ let parseExpr sheetName s =
         | _ -> None
     and (|NoNegation|_|) = function
         | NumToken d::t -> Some(<@ d @>,t)
-    //    | RefToken (x1,y1)::Symbol ':'::RefToken (x2,y2)::t -> Some (<@@ GetRange(@@>,t)
+        | RefToken (a1)::Symbol ':'::RefToken (a2)::t -> failwith "Range expression not supported:"
         | RefToken (addr)::t ->
               Some (Expr.Var(getVar sheetName addr)|> Expr.Cast,t)
         | RefTokenFull (sheetName,addr)::t ->
@@ -161,7 +161,10 @@ let parseExpr sheetName s =
             let methodInfo = typeof<FunctionLibrary>.GetProperty(name).GetGetMethod(false)
             Some(Expr.Call(methodInfo,[])|>Expr.Cast,t)
         | _ -> None
-    let tokens = tokenize s
-    match tokens with
-    | FullExpression e -> e
-    | _ -> failwith (sprintf "invalid expression: %O" tokens)
+    try
+        let tokens = tokenize s
+        match tokens with
+        | FullExpression e -> e
+        | _ -> failwith (sprintf "invalid expression: %O" (tokens.ToString()))
+    with
+    | e -> failwith (sprintf "%s%s%s" e.Message System.Environment.NewLine s) 
