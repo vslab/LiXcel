@@ -14,7 +14,7 @@ namespace LiXcel
         private void LxlRibbon_Load(object sender, RibbonUIEventArgs e)
         {
         }
-
+        /*
         private void button1_Click(object sender, RibbonControlEventArgs e)
         {
             Excel.Range input = Application.ActiveCell;
@@ -46,7 +46,7 @@ namespace LiXcel
             int iterazioni = 1000000;// Application.InputBox("Numero di iterazioni", Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, 8);
             Globals.api.Simulate(input, output, iterazioni,min,max);
         }
-
+        */
         private void button2_Click(object sender, RibbonControlEventArgs e)
         {
             Globals.ThisAddIn.ShowTaskPane();
