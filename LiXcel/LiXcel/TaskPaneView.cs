@@ -23,62 +23,78 @@ namespace LiXcel
 
         private void button1_Click(object sender, EventArgs e)
         {
-            if (keepOnSimulating)
+            //while (true)
             {
-                // stop simulating
-                keepOnSimulating = false;
+                
             }
-            else
+            //MessageBox.Show("hello");
+            //var eeeoue = Application.InputBox("testoeu", Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, 8);
+            try
             {
-                if (stillSimulating)
+                //var eoue = Application.InputBox("test", Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, 8);
+                //throw (new System.Exception("gao"));
+                if (keepOnSimulating)
                 {
-                    // finishing last simulation
-                    SetText("completing simulation, please wait", StatusLabel);
+                    // stop simulating
+                    keepOnSimulating = false;
                 }
                 else
                 {
-                    // start simulating
-                    iterations = (int)iterationsNumericUpDown.Value;
-                    Excel.Range input = Application.ActiveCell;
-                    if (input == null)
+                    if (stillSimulating)
                     {
-                        var inputBox = Application.InputBox("seleziona casella input", Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, 8);
-                        if (!(inputBox is Excel.Range))
-                            return;
-                        input = (Excel.Range)inputBox;
+                        // finishing last simulation
+                        SetText("completing simulation, please wait", StatusLabel);
                     }
+                    else
+                    {
+                        // start simulating
+                        iterations = (int)iterationsNumericUpDown.Value;
+                        Excel.Range input = Application.ActiveCell;
+                        if (input == null)
+                        {
+                            var inputBox = Application.InputBox("seleziona casella input", Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, 8);
+                            if (!(inputBox is Excel.Range))
+                                return;
+                            input = (Excel.Range)inputBox;
+                        }
 
-                    Excel.Range output = null;
-                    if (output == null)
-                    {
-                        var inputBox = Application.InputBox("seleziona range output (almeno 2 colonne)", Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, 8);
-                        if (!(
-                            inputBox is Excel.Range
-                            && ((inputBox as Excel.Range).Columns.Count > 1)
-                            ))
-                            return;
-                        output = (Excel.Range)inputBox;
-                    }
-                    double min = double.NaN;
-                    var minstr = minTextBox.Text; //Application.InputBox("Minimum value");
-                    if ("".Equals(minstr.ToString()) || !double.TryParse(minstr.ToString(), out min)) min = double.NaN;
-                    double max = double.NaN;
-                    var maxstr = maxTextBox.Text; //Application.InputBox("Maxumum value");
-                    if ("".Equals(maxstr.ToString()) || !double.TryParse(maxstr.ToString(), out max)) max = double.NaN;
-                    //int iterazioni = 1000000;// Application.InputBox("Numero di iterazioni", Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, 8);
-                    try
-                    {
-                        load = Globals.api.SimulateThreaded(input, output, iterations, min, max);
-                        System.Threading.Thread t = new System.Threading.Thread(RunSimulation);
-                        t.Start();                    }
-                    catch (Exception ee)
-                    {
-                        var d = new ErrorDialog();
-                        d.textBox1.Text = ee.Message;
-                        d.ShowDialog();
-                    }
+                        Excel.Range output = null;
+                        if (output == null)
+                        {
+                            var inputBox = Application.InputBox("seleziona range output (almeno 2 colonne)", Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, 8);
+                            if (!(
+                                inputBox is Excel.Range
+                                && ((inputBox as Excel.Range).Columns.Count > 1)
+                                ))
+                                return;
+                            output = (Excel.Range)inputBox;
+                        }
+                        double min = double.NaN;
+                        var minstr = minTextBox.Text; //Application.InputBox("Minimum value");
+                        if ("".Equals(minstr.ToString()) || !double.TryParse(minstr.ToString(), out min)) min = double.NaN;
+                        double max = double.NaN;
+                        var maxstr = maxTextBox.Text; //Application.InputBox("Maxumum value");
+                        if ("".Equals(maxstr.ToString()) || !double.TryParse(maxstr.ToString(), out max)) max = double.NaN;
+                        //int iterazioni = 1000000;// Application.InputBox("Numero di iterazioni", Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, 8);
+                        try
+                        {
+                            load = Globals.api.SimulateThreaded(input, output, iterations, min, max);
+                            System.Threading.Thread t = new System.Threading.Thread(RunSimulation);
+                            t.Start();
+                        }
+                        catch (Exception ee)
+                        {
+                            var d = new ErrorDialog();
+                            d.textBox1.Text = ee.Message;
+                            d.ShowDialog();
+                        }
 
+                    }
                 }
+            }
+            catch (System.Exception exce)
+            {
+                MessageBox.Show(exce.ToString());
             }
         }
 

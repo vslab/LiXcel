@@ -39,6 +39,7 @@
             this.button1 = this.Factory.CreateRibbonButton();
             this.button2 = this.Factory.CreateRibbonButton();
             this.button3 = this.Factory.CreateRibbonButton();
+            this.versionTag = this.Factory.CreateRibbonLabel();
             this.tab1.SuspendLayout();
             this.group1.SuspendLayout();
             // 
@@ -53,8 +54,14 @@
             // 
             this.group1.Items.Add(this.button1);
             this.group1.Items.Add(this.button2);
+            this.group1.Items.Add(this.versionTag);
             this.group1.Label = "LiXcel";
             this.group1.Name = "group1";
+            // 
+            // button1
+            // 
+            this.button1.Label = "";
+            this.button1.Name = "button1";
             // 
             // button2
             // 
@@ -67,6 +74,11 @@
             this.button3.Label = "Mostra Panello";
             this.button3.Name = "button3";
             this.button3.ShowImage = true;
+            // 
+            // versionTag
+            // 
+            this.versionTag.Label = "<version>";
+            this.versionTag.Name = "versionTag";
             // 
             // LxlRibbon
             // 
@@ -92,6 +104,7 @@
         internal Microsoft.Office.Tools.Ribbon.RibbonButton button1;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton button2;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton button3;
+        internal Microsoft.Office.Tools.Ribbon.RibbonLabel versionTag;
     }
 
     partial class ThisRibbonCollection

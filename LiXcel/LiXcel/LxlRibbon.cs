@@ -13,6 +13,9 @@ namespace LiXcel
 
         private void LxlRibbon_Load(object sender, RibbonUIEventArgs e)
         {
+            versionTag.Label = "debug";
+            if(System.Deployment.Application.ApplicationDeployment.IsNetworkDeployed)
+                versionTag.Label = System.Deployment.Application.ApplicationDeployment.CurrentDeployment.CurrentVersion.ToString();
         }
         /*
         private void button1_Click(object sender, RibbonControlEventArgs e)
