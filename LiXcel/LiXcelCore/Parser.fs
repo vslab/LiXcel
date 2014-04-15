@@ -137,6 +137,7 @@ let parseExpr sheetName s =
     and (|FunCall|_|) = function
         | StrToken(name) :: Symbol '(' :: ArgList(al,ae,Symbol ')' :: t) ->
             //before that, check if it is an "if"
+            let name = name.ToUpper()
             if name = "IF" then
                 try
                     let g::tru::fal::_ = al
