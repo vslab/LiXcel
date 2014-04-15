@@ -36,7 +36,6 @@
     <InstallUrl>https://robotdevil.di.unipi.it/clickonce/lixcel/</InstallUrl>
     <TargetCulture>it</TargetCulture>
     <ApplicationVersion>0.1.0.19</ApplicationVersion>
-    <ApplicationVersion>0.1.0.17</ApplicationVersion>
     <AutoIncrementApplicationRevision>true</AutoIncrementApplicationRevision>
     <UpdateEnabled>true</UpdateEnabled>
     <UpdateInterval>0</UpdateInterval>
