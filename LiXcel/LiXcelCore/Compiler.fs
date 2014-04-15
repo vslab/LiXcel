@@ -114,8 +114,11 @@ module priv =
                 deps |> Seq.iter (fun v ->
                     let cell = resolveContext ctx (v.Name)
                     let formula = cell.Formula |> unbox
-                    let exp = Parser.parseExpr  (cell.Worksheet.Name) formula
-                    addrec v cell exp )
+                    try
+                        let exp = Parser.parseExpr  (cell.Worksheet.Name) formula
+                        addrec v cell exp 
+                    with
+                    | e -> failwith (sprintf "%s%sOn cell %s" e.Message System.Environment.NewLine v.Name))
                 if (List.exists (fun (n,_,_) -> name =n) !lista) then
                     failwith "circular reference"
                 else
@@ -124,8 +127,11 @@ module priv =
         deps |> Seq.iter (fun v ->
             let cell = resolveContext ctx (v.Name)
             let formula = cell.Formula |> unbox
-            let exp = Parser.parseExpr  (cell.Worksheet.Name) formula
-            addrec v cell exp)
+            try
+                let exp = Parser.parseExpr  (cell.Worksheet.Name) formula
+                addrec v cell exp
+            with
+            | e -> failwith (sprintf "%s%sOn cell %s" e.Message System.Environment.NewLine v.Name))
         !lista
     let rec eval (env:Map<Var,float>) (expr:Expr) =
         match expr with

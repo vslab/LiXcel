@@ -165,6 +165,6 @@ let parseExpr sheetName s =
         let tokens = tokenize s
         match tokens with
         | FullExpression e -> e
-        | _ -> failwith (sprintf "invalid expression: %O" (tokens.ToString()))
+        | _ -> failwith (sprintf "invalid expression: %s" (tokens.ToString()))
     with
     | e -> failwith (sprintf "%s%s%s" e.Message System.Environment.NewLine s) 
