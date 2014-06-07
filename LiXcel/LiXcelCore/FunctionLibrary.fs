@@ -23,3 +23,5 @@ type FunctionLibrary =
     static member COS x = cos x
     static member SQRT x = sqrt x
     static member ROUND number digits = let mul = (10.0**truncate(digits)) in (truncate (number * mul + 0.5)) / mul
+    static member MAX values =
+        List.max<float> values
