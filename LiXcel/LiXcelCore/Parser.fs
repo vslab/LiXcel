@@ -67,6 +67,8 @@ let parseExpr sheetName s =
         | OpToken "-"::NumToken d::[] -> Some (let d = -d in <@ d @>)
         | NumToken d::Symbol '%'::[] -> Some (let d = d/100.0 in <@ d @>)
         | OpToken "-"::NumToken d::Symbol '%'::[] -> Some (let d = -d/100.0 in <@ d @>)
+        | StrToken(name)::t when name.ToUpper()  = "TRUE" -> Some(<@ 1.0 @>)
+        | StrToken(name)::t when name.ToUpper()  = "FALSE" -> Some(<@ 0.0 @>)
         | [] -> Some <@ 0.0 @>
         | _ -> None
     and (|NoNegation|_|) = function
@@ -76,6 +78,8 @@ let parseExpr sheetName s =
               Some (Expr.Var(getVar sheetName addr)|> Expr.Cast,t)
         | RefTokenFull (sheetName,addr)::t ->
               Some (Expr.Var(getVar sheetName addr)|> Expr.Cast,t)
+        | StrToken(name)::t when name.ToUpper()  = "TRUE" -> Some(<@ 1.0 @>,t)
+        | StrToken(name)::t when name.ToUpper()  = "FALSE" -> Some(<@ 0.0 @>,t)
         | Symbol '(' :: Expression(e,Symbol ')'::t) -> Some (<@ ( %e )@>,t)
         | FunCall(e,t) -> Some(e,t)
         | _ -> None
