@@ -15,7 +15,14 @@ type CompiledExpr =
     | GenericFun of System.Reflection.MethodInfo*(CompiledExpr list)
     | GenericInvoke of System.Reflection.MethodInfo*(CompiledExpr list)
     | Bind of (Var*float ref)* CompiledExpr *CompiledExpr
-
+    | IfThenElse of (CompiledExpr*CompiledExpr*CompiledExpr)
+    | LessThan of (CompiledExpr*CompiledExpr)
+    | GreaterThan of (CompiledExpr*CompiledExpr)
+    | Equal of (CompiledExpr*CompiledExpr)
+    | NotLessThan of (CompiledExpr*CompiledExpr)
+    | NotGreaterThan of (CompiledExpr*CompiledExpr)
+    | NotEqual of (CompiledExpr*CompiledExpr)
+    
 let FastEval (e:CompiledExpr):float =
     let rec receval = function
         | Variable (var,addr) -> !addr
@@ -54,6 +61,14 @@ let FastEval (e:CompiledExpr):float =
             let a = receval a
             addr := a
             receval b
+        | IfThenElse(guard,ifbody,elsebody) ->
+            receval (if (0.0 <> receval guard) then ifbody else elsebody)
+        | LessThan      (a,b) -> if receval a <  receval b then 1.0 else 0.0
+        | GreaterThan   (a,b) -> if receval a >  receval b then 1.0 else 0.0
+        | Equal         (a,b) -> if receval a =  receval b then 1.0 else 0.0
+        | NotLessThan   (a,b) -> if receval a >= receval b then 1.0 else 0.0
+        | NotGreaterThan(a,b) -> if receval a <= receval b then 1.0 else 0.0
+        | NotEqual      (a,b) -> if receval a <> receval b then 1.0 else 0.0
     receval e
 
 //transforms a list expression in an expression list.
@@ -93,6 +108,29 @@ let rec exprCompiler (m:Map<Var,float ref>) : Expr->CompiledExpr= function
         let newm = m.Add(var,r)
         let bexpr = exprCompiler m a
         Bind((var,r),bexpr,exprCompiler newm b)
+    | Patterns.IfThenElse(Patterns.Coerce(guard,_),ifbody,elsebody) ->
+        CompiledExpr.IfThenElse(exprCompiler m guard,exprCompiler m ifbody,exprCompiler m elsebody)
+    | Patterns.IfThenElse(guard,ifbody,elsebody) ->
+        match guard with
+        | DerivedPatterns.SpecificCall <@ (<) @> (a,b,c::d::_) ->
+            let c,d = exprCompiler m c, exprCompiler m d
+            CompiledExpr.LessThan(c,d)
+        | DerivedPatterns.SpecificCall <@ (>) @> (a,b,c::d::_) ->
+            let c,d = exprCompiler m c, exprCompiler m d
+            CompiledExpr.GreaterThan(c,d)
+        | DerivedPatterns.SpecificCall <@ (=) @> (a,b,c::d::_) ->
+            let c,d = exprCompiler m c, exprCompiler m d
+            CompiledExpr.Equal(c,d)
+        | DerivedPatterns.SpecificCall <@ (>=) @> (a,b,c::d::_) ->
+            let c,d = exprCompiler m c, exprCompiler m d
+            CompiledExpr.NotLessThan(c,d)
+        | DerivedPatterns.SpecificCall <@ (<=) @> (a,b,c::d::_) ->
+            let c,d = exprCompiler m c, exprCompiler m d
+            CompiledExpr.NotGreaterThan(c,d)
+        | DerivedPatterns.SpecificCall <@ (<>) @> (a,b,c::d::_) ->
+            let c,d = exprCompiler m c, exprCompiler m d
+            CompiledExpr.NotEqual(c,d)
+        | _ ->  raise <| System.NotSupportedException(guard.ToString())
     | arg -> raise <| System.NotSupportedException(arg.ToString())
 
 module priv =
