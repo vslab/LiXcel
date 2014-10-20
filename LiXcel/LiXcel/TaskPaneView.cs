@@ -49,6 +49,11 @@ namespace LiXcel
                     {
                         // start simulating
                         iterations = (int)iterationsNumericUpDown.Value;
+                        maxIterations = (long)maxIterationsNumericUpDown.Value;
+                        if (maxIterations <= 0)
+                        {
+                            maxIterations = Int64.MaxValue;
+                        }
                         Excel.Range input = Application.ActiveCell;
                         if (input == null)
                         {
@@ -101,6 +106,7 @@ namespace LiXcel
         private System.Threading.Thread currentThread;
         private Microsoft.FSharp.Core.FSharpFunc<Microsoft.FSharp.Core.Unit, Microsoft.FSharp.Core.Unit> load;
         private bool keepOnSimulating;
+        private long maxIterations;
         private bool stillSimulating;
         private int iterations;
 
@@ -110,7 +116,7 @@ namespace LiXcel
             stillSimulating = true;
             SetText("Stop Simulation", StartButton);
             int totiterations = 0;
-            while (keepOnSimulating)
+            while (keepOnSimulating && totiterations < maxIterations)
             {
                 totiterations += iterations;
                 SetText("simulated " + totiterations +  " samples", StatusLabel);
